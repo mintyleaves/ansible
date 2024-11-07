@@ -1,0 +1,12 @@
+---
+- name: Copy a configuration file to the web server
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Copy the txt file
+      copy:
+        src: /local/path/tomyfile.txt
+        dest: /etc/path/tomyfile.txt
+        owner: root
+        group: root
+        mode: '0644'
