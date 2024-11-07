@@ -1,0 +1,82 @@
+---
+- name: Deploy and configure Debian 12 machine
+  hosts: debian_servers
+  become: yes  # Escalate to root (use 'sudo')
+  vars:
+    user_name: deployer
+    user_password: "{{ 'password' | password_hash('sha512') }}"  # Set user password (hashed)
+    packages_to_install:
+      - vim
+      - curl
+      - git
+      - htop
+      - ufw
+      - nginx
+      - fail2ban
+	  - pip3
+    firewall_ports:
+      - '22'   # SSH
+      - '80'   # HTTP
+      - '443'  # HTTPS
+
+  tasks:
+    # Step 1: Update the apt cache and upgrade all packages
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    # Step 2: Install necessary packages
+    - name: Install necessary packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ packages_to_install }}"
+      notify: Restart Nginx
+
+    # Step 3: Create a new user with sudo privileges
+    - name: Create a new user with sudo privileges
+      user:
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        shell: /bin/bash
+        groups: sudo
+        state: present
+
+    # Step 4: Set up UFW (Uncomplicated Firewall)
+    - name: Ensure UFW is enabled
+      ufw:
+        state: enabled
+        logging: on
+
+    # Step 5: Allow SSH and HTTP/HTTPS traffic through the firewall
+    - name: Allow SSH, HTTP, and HTTPS in the firewall
+      ufw:
+        rule: allow
+        name: "{{ item }}"
+      loop: "{{ firewall_ports }}"
+
+    # Step 6: Ensure Nginx is enabled and running
+    - name: Ensure Nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    # Step 7: Secure the system with Fail2Ban
+    - name: Install and configure Fail2Ban
+      apt:
+        name: fail2ban
+        state: present
+
+    - name: Ensure Fail2Ban service is started and enabled
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
