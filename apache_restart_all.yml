@@ -1,0 +1,9 @@
+---
+- name: Restart Apache on all servers
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Restart Apache service
+      service:
+        name: apache2
+        state: restarted
