@@ -1,0 +1,10 @@
+---
+- name: Backup MySQL database
+  hosts: dbservers
+  become: yes
+  tasks:
+    - name: Backup database
+      mysql_db:
+        name: mydb
+        state: dump
+        target: /backups/mydb.sql
