@@ -1,0 +1,33 @@
+---
+- name: Backup MySQL Database
+  hosts: db_servers
+  become: yes
+  vars:
+    backup_dir: "/backups/mysql"
+    db_user: "root"
+    db_password: "password"
+    db_name: "mydb"
+    backup_file: "{{ backup_dir }}/{{ db_name }}_backup_{{ ansible_date_time.iso8601_basic }}.sql"
+
+  tasks:
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run mysqldump to backup database
+      ansible.builtin.command:
+        cmd: "mysqldump -u {{ db_user }} -p{{ db_password }} {{ db_name }} > {{ backup_file }}"
+      args:
+        creates: "{{ backup_file }}"
+
+    - name: Verify backup file exists
+      ansible.builtin.stat:
+        path: "{{ backup_file }}"
+      register: backup_status
+
+    - name: Fail if backup was not created
+      ansible.builtin.fail:
+        msg: "Backup failed, no file created!"
+      when: not backup_status.stat.exists

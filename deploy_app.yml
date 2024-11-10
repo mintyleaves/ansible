@@ -1,0 +1,31 @@
+---
+- name: Deploy application from Git repository
+  hosts: app_servers
+  become: yes
+  vars:
+    repo_url: "https://github.com/myorg/myapp.git"
+    deploy_dir: "/opt/myapp"
+    branch: "main"
+
+  tasks:
+    - name: Install Git
+      ansible.builtin.yum:
+        name: git
+        state: present
+
+    - name: Clone the application repository
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ deploy_dir }}"
+        version: "{{ branch }}"
+        force: yes
+
+    - name: Install application dependencies (if using pip for Python apps)
+      ansible.builtin.pip:
+        requirements: "{{ deploy_dir }}/requirements.txt"
+        state: present
+
+    - name: Restart the application service
+      ansible.builtin.systemd:
+        name: myapp
+        state: restarted
